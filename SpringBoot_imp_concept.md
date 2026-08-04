@@ -1,0 +1,3 @@
+## @Component 
+
+is a Spring stereotype annotation that tells the Spring IoC (Inversion of Control) container to automatically detect, create, and manage an object (called a Bean). During application startup, Spring scans the configured packages, finds classes annotated with @Component, instantiates them, manages their lifecycle, and makes them available for Dependency Injection (@Autowired or constructor injection). It is the most generic stereotype annotation and is typically used for helper classes, utility components, mappers, validators, and other classes that don't specifically belong to the Service, Repository, or Controller layers.
