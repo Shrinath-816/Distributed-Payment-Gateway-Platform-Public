@@ -1,141 +1,141 @@
-## JwtValidator.java
-Relative Path: platform/common-security/src/main/java/com/paymentgateway/common/jwt/JwtValidator.java
+# KafkaConsumerConfig.java
+Relative Path: platform/common-kafka/src/main/java/com/paymentgateway/common/config/KafkaConsumerConfig.java
 
 1. File Overview
 
-Module: common-security | Package: common.jwt | Layer: Infrastructure
-Doc Cross-Reference: API-Gateway-Part-02.md §25.2 (JWT Validation)
+Module: common-kafka | Package: common.config | Layer: Infrastructure
+Doc Cross-Reference: Event-Catalog.md §6 (Consumer Groups), §9 (Delivery Guarantees)
 2. Purpose
 
-Validates an inbound Bearer JWT's signature, expiry, issuer, and audience per the platform's JWT authentication standard, used by the API Gateway (the platform's sole JWT-validating component per Security-Architecture.md §2).
+Shared Kafka consumer factory configuration (manual offset commit after successful Inbox-deduped processing, deserialization error handling) each service's event consumer classes build on.
 3. Responsibilities
 
-Validates signature using RS256/ES256 only (explicit algorithm allow-list — never trusts the token's own alg header without cross-checking against the configured allow-list, preventing algorithm-confusion attacks).
-Validates exp, nbf (±60s clock skew tolerance), iss, aud claims against configured expected values.
-Must NOT accept HS256 or any symmetric algorithm from an external caller under any configuration.
-Must NOT perform authorization (scope checking) — this class answers only "is this token authentic and current," not "is this caller allowed to do X."
+Configures manual acknowledgment mode (offset committed only after the consuming service's local transaction — business write + Inbox record — succeeds, per SYSTEM_DESIGN.md §7's at-least-once guarantee), a deserialization error handler that routes an unparseable message to logging/alerting rather than crashing the consumer thread.
+Must NOT configure a specific consumer group ID — each service names its own consumer group per its own bounded context, supplied via that service's own application.yml, not hardcoded here.
 4. Dependencies
 
-Internal: JwksKeyCache.
-External: a JWT parsing library (e.g. Nimbus JOSE+JWT / java-jwt), consistent platform-wide once chosen here.
+Internal: KafkaTopicsProperties.
+External: Spring Kafka ConsumerFactory/ConcurrentKafkaListenerContainerFactory.
 5. Public API
 
-AuthenticatedClaims validate(String rawJwt) — Purpose: full validation pipeline; Parameters: the raw Bearer token string (without the "Bearer " prefix, stripped by the caller); Return: a small claims value object (subject, scopes, merchant/client identifier) on success; Exceptions: throws a specific unchecked exception (e.g. InvalidTokenException) with enough detail for internal logging but never enough to leak into an external response body (per API-Gateway-Part-02.md §19.11's generic-denial requirement).
+@Bean method producing a shared ConsumerFactory/listener container factory configured as above.
 6. Internal Workflow
 
-Parse the JWT header to read alg and kid without yet trusting them.
-Reject immediately if alg is not in the RS256/ES256 allow-list.
-Resolve the public key via JwksKeyCache.getKey(kid).
-Verify signature with that key.
-Validate exp/nbf/iss/aud claims.
-On full success, map claims into AuthenticatedClaims and return.
+Builds consumer properties map (manual ack mode, deserializer, error handler), constructs the factory bean.
 7. Engineering Considerations
 
-Security: every rejection path (bad algorithm, bad signature, expired, wrong issuer/audience) must be logged with enough detail for security monitoring while the exception surfaced to the caller stays generic.
-Performance: relies entirely on JwksKeyCache to avoid a remote call on the hot authentication path.
+Reliability: manual-ack-after-business-write is what makes the platform's Inbox dedupe guarantee actually hold — an auto-commit configuration would risk committing an offset before the corresponding business effect is durably recorded.
 8. Testing Strategy
 
-Unit tests: valid token, expired token, wrong issuer, wrong audience, HS256-signed token (must be rejected outright), tampered signature, clock-skew boundary cases (±60s).
+Integration test verifying a consumer only commits its offset after the (test) business handler completes successfully, and that a handler exception leaves the offset uncommitted for redelivery.
 9. Future Extension
 
-If OpenID Connect discovery is adopted later, issuer/audience configuration could be resolved dynamically rather than statically configured — a change confined to this class and JwksKeyCache.
-## SecurityBaseConfig.java
-Relative Path: platform/common-security/src/main/java/com/paymentgateway/common/config/SecurityBaseConfig.java
+If a dead-letter-topic pattern is ever adopted (currently the platform explicitly does not use one, per Event-Catalog.md §8), this is where it would be introduced.
+# OutboxRelay.java
+Relative Path: platform/common-kafka/src/main/java/com/paymentgateway/common/outbox/OutboxRelay.java
 
 1. File Overview
 
-Module: common-security | Package: common.config | Layer: Infrastructure (Spring configuration)
-Doc Cross-Reference: Security-Architecture.md §2–§3 (Authentication, Authorization)
+Module: common-kafka | Package: common.outbox | Layer: Shared kernel / application-adjacent infrastructure
+Doc Cross-Reference: SYSTEM_DESIGN.md §7 (Outbox Pattern)
 2. Purpose
 
-Provides the shared baseline Spring Security filter-chain configuration (stateless session policy, CSRF disabled for a pure API surface, common security headers) every service imports and extends with its own service-specific filters (e.g. AuthenticationFilter at the Gateway, InternalServiceAuthFilter elsewhere).
+The single, reusable polling-and-publishing engine every service's own Outbox adapter delegates to, guaranteeing the exact same "read unpublished rows, publish, mark published" behavior platform-wide rather than seven independent re-implementations.
 3. Responsibilities
 
-Configures SessionCreationPolicy.STATELESS, disables CSRF (appropriate for a bearer-token/mTLS API platform with no cookie-based session), and registers common security headers (e.g. HSTS where applicable).
-Must NOT register any service-specific filter itself — each service's own SecurityConfig composes this base with its own filters.
+Defines a port interface, OutboxEventStorePort (in this same package), with methods each service's own persistence adapter implements: find a batch of PENDING rows, mark a row PUBLISHED, mark a row FAILED after exhausted attempts.
+On each invocation (triggered by OutboxRelayScheduler), fetches a bounded batch of pending rows via the port, publishes each to Kafka via the shared KafkaProducerConfig-provided template, and marks each row's outcome via the port.
+Must NOT itself contain any JPA/database-specific code — persistence is entirely behind OutboxEventStorePort, implemented per-service in Phase 1+.
 4. Dependencies
 
-Internal/External: Spring Security (SecurityFilterChain / ServerHttpSecurity depending on Servlet vs. WebFlux stack per service).
+Internal: OutboxEvent, OutboxEventStatus, EventEnvelope (for deserializing the stored JSON payload back into a publishable message, or simply forwarding the pre-serialized string as the Kafka message value — the latter is simpler and avoids a redundant deserialize/reserialize round trip, and is the recommended approach).
+External: Spring KafkaTemplate.
 5. Public API
 
-A @Bean-producing method returning the base security configuration object each service's own SecurityConfig further customizes (exact return type — HttpSecurity/ServerHttpSecurity builder or a reusable customizer — resolved at implementation time based on the consuming service's stack).
+OutboxEventStorePort interface methods: List<OutboxEvent> findPendingBatch(int batchSize); void markPublished(UUID outboxEventId); void markFailed(UUID outboxEventId, String reason).
+int pollAndPublish(int batchSize) — Purpose: the relay's core cycle; Parameters: how many rows to fetch per invocation; Return: count of rows successfully published; Exceptions: does not propagate individual publish failures (caught, logged, row marked FAILED or left PENDING for retry depending on failure classification) — only propagates a genuine infrastructure-level failure (e.g. the store port itself is unreachable) to the caller/scheduler.
 6. Internal Workflow
 
-Applies the baseline settings described in Responsibilities; delegates everything else to the importing service.
+Fetch a bounded batch of PENDING rows via the store port.
+For each row: publish its pre-serialized payload to the topic derived from its eventType (via KafkaTopicsProperties' event-type-to-topic mapping, resolved by a small internal lookup), keyed by aggregateId.
+On successful publish acknowledgment, call markPublished.
+On a transient publish failure, leave the row PENDING (next poll cycle retries it) up to a bounded number of cycles; on repeated failure beyond that bound, call markFailed and emit an alert-worthy log/metric.
 7. Engineering Considerations
 
-Consistency: this is what guarantees no service accidentally reintroduces stateful sessions or leaves CSRF enabled on an API-only surface.
+Reliability: this is the component that makes the platform's "no event is ever lost" guarantee concrete — a row is never removed from PENDING until Kafka has acknowledged it.
+Performance: batched polling with a partial index on published=false-equivalent (status=PENDING) is assumed at the persistence layer per every service's own database design docs — this class's batchSize parameter exists specifically to keep each poll cycle bounded and fast regardless of historical table volume.
 8. Testing Strategy
 
-Each service's own security integration test (Phase 1+) verifies the composed chain behaves as expected; this base class itself only needs a smoke test confirming it produces a non-null, stateless configuration.
+Unit test with a fake OutboxEventStorePort and a mocked Kafka template: successful batch publish marks all rows published; a simulated publish failure leaves the row pending; repeated failures beyond the bound mark it failed.
+Integration test (Testcontainers Kafka) verifying an end-to-end publish actually lands on the expected topic/partition.
 9. Future Extension
 
-If a future service genuinely needs cookie-based sessions (unlikely, but e.g. an admin dashboard), that service overrides rather than modifies this shared base.
-
-## EventType.java
-Relative Path: platform/common-kafka/src/main/java/com/paymentgateway/common/envelope/EventType.java
+If per-event-type publish prioritization is ever needed, findPendingBatch could accept an ordering/priority hint — not implemented now (no demonstrated need).
+# OutboxRelayScheduler.java
+Relative Path: platform/common-kafka/src/main/java/com/paymentgateway/common/outbox/OutboxRelayScheduler.java
 
 1. File Overview
 
-Module: common-kafka | Package: common.envelope | Layer: Shared kernel
-Doc Cross-Reference: Event-Catalog.md §6 (Event Catalog table), §2 (Event Naming Convention)
+Module: common-kafka | Package: common.outbox | Layer: Infrastructure (scheduled trigger)
+Doc Cross-Reference: SYSTEM_DESIGN.md §7 (Outbox Pattern)
 2. Purpose
 
-Enumerates every domain event name in the platform's Event Catalog as a closed, typo-proof vocabulary shared by every producer and consumer, rather than each service passing raw strings.
+The thin, @Scheduled-annotated trigger that periodically invokes OutboxRelay.pollAndPublish(...), kept separate from OutboxRelay itself so the relay's core logic remains framework-scheduling-agnostic and independently unit-testable.
 3. Responsibilities
 
-One enum constant per event listed in Event-Catalog.md §6 (e.g. MERCHANT_ACTIVATED, TOKEN_CREATED, PAYMENT_CAPTURED, SETTLEMENT_COMPLETED, etc.) — the full list is authoritative in that document and must be reproduced exactly, not re-derived or abbreviated.
-Must NOT encode which topic an event belongs to — that mapping lives in KafkaTopicsProperties, keeping event identity and topic routing independently configurable.
+Invokes OutboxRelay.pollAndPublish(batchSize) on a fixed-delay schedule, both values externalized as properties (not hardcoded).
+Must NOT contain any publishing or persistence logic itself — purely a timing trigger.
 4. Dependencies
 
-Internal/External: none.
+Internal: OutboxRelay.
+External: Spring @Scheduled.
 5. Public API
 
-Enum constants only, plus String wireName() — Purpose: the exact past-tense string used on the wire/in the EventEnvelope.eventType field (may equal name() or a explicitly mapped string if casing conventions differ); Return: String; Exceptions: none.
+Scheduled method triggerRelay() — Purpose: the @Scheduled entry point; Parameters: none; Return: void; Exceptions: none escape (delegates entirely to OutboxRelay, which already handles its own failure classification).
 6. Internal Workflow
 
-N/A (declarative).
+On each tick, call outboxRelay.pollAndPublish(configuredBatchSize) and log the returned publish count at INFO.
 7. Engineering Considerations
 
-Any new event introduced in a later phase must be added here and cross-checked against Event-Catalog.md before that service's producer code is written — this file is intentionally kept in lock-step with the documentation.
+Each service configures its own fixed-delay interval appropriate to its own publish-latency SLO (e.g. tighter for Payment Orchestrator's payment.events, looser for lower-urgency topics) via its own application.yml, without needing a different Java class.
 8. Testing Strategy
 
-A unit test cross-referencing this enum's constant count/names against a checked-in copy of the Event Catalog list (a simple safeguard against drift, not a live doc-parser).
+Unit test verifying the scheduled method calls pollAndPublish with the configured batch size.
 9. Future Extension
 
-Additive only; an event name is never renamed or removed once any service has shipped a producer/consumer for it (per Event-Catalog.md §10, Event Versioning).
-## EventEnvelope.java
-Relative Path: platform/common-kafka/src/main/java/com/paymentgateway/common/envelope/EventEnvelope.java
+None anticipated; deliberately kept minimal per the Simplicity First principle.
+# InboxDeduplicationService.java
+Relative Path: platform/common-kafka/src/main/java/com/paymentgateway/common/inbox/InboxDeduplicationService.java
 
 1. File Overview
 
-Module: common-kafka | Package: common.envelope | Layer: Shared kernel
-Doc Cross-Reference: SYSTEM_DESIGN.md §5 (Event Envelope), Event-Catalog.md §4 (Event Lifecycle Diagram)
+Module: common-kafka | Package: common.inbox | Layer: Shared kernel / application-adjacent infrastructure
+Doc Cross-Reference: SYSTEM_DESIGN.md §7 (Inbox Pattern)
 2. Purpose
 
-The single platform-wide event wrapper (Java 21 generic record) every service's Outbox row is serialized into and every Kafka message deserializes from, guaranteeing every event on every topic carries the same structural metadata.
+The single, reusable "have I already processed this event" check every service's Kafka consumer calls before executing its business handler, the consumer-side counterpart to OutboxRelay.
 3. Responsibilities
 
-Fields, exactly per SYSTEM_DESIGN.md §5: eventId (UUID), eventType (EventType), aggregateId (UUID), version (long), correlationId (UUID), causationId (UUID, nullable), timestamp (Instant, UTC), payload (generic type T, the event-specific data).
-Must NOT allow payload to be an untyped Object/Map in application code — each producer constructs EventEnvelope<SpecificPayloadType>, so payload shape is compile-time checked up to the serialization boundary.
-Must NOT ever contain a field capable of holding cardholder data, secrets, or key material — this is a structural, platform-wide guarantee independent of any single service's own discipline.
+Defines a port interface, InboxEventStorePort, with methods each service's persistence adapter implements: check-and-record an eventId as processed within the same local transaction as the business handler's own write.
+Must NOT execute the business handler itself — this service only answers "already processed? yes/no" and, on "no," records the eventId; the calling consumer class (per-service, later phases) is responsible for wrapping both the business write and this record call in one local transaction.
 4. Dependencies
 
-Internal: EventType.
-External: java.time.Instant, java.util.UUID, a JSON serialization library (Jackson, standard with Spring Boot) for the payload.
+Internal: InboxEvent.
+External: none beyond the port interface.
 5. Public API
 
-Canonical generic record constructor EventEnvelope<T>(UUID eventId, EventType eventType, UUID aggregateId, long version, UUID correlationId, UUID causationId, Instant timestamp, T payload).
-Static factory static <T> EventEnvelope<T> newEvent(EventType type, UUID aggregateId, long version, UUID correlationId, UUID causationId, T payload) — Purpose: convenience construction generating a fresh eventId and current timestamp; Return: new envelope instance.
+InboxEventStorePort interface method: boolean tryMarkProcessed(UUID eventId, String consumerName) — Purpose: atomically check-and-insert; Parameters: the event's ID and the logical consumer name; Return: true if this call newly recorded it (caller should proceed with business processing), false if it was already recorded (caller should skip processing, since another delivery already handled it); Exceptions: implementation-specific (data-access exceptions propagate — a failure here must abort the whole transaction, since proceeding without a successful dedupe record would risk double-processing).
 6. Internal Workflow
 
-Pure data carrier; serialization/deserialization is handled by Jackson configuration in KafkaProducerConfig/KafkaConsumerConfig, not by this class itself.
+Delegates directly to the injected InboxEventStorePort's atomic check-and-insert (implemented per-service against a unique-constrained inbox_event table in Phase 1+, using an INSERT ... ON CONFLICT DO NOTHING-equivalent or a caught unique-constraint-violation pattern to achieve atomicity without a separate SELECT-then-INSERT race).
 7. Engineering Considerations
 
-Generic type erasure: Jackson's generic deserialization requires either a TypeReference at the consumer side or a wrapping mechanism (e.g. carrying the payload's fully-qualified class name, or each consumer knowing its expected payload type upfront since it only ever subscribes to specific event types) — this detail must be resolved consistently in KafkaConsumerConfig and documented there.
+Concurrency: the atomicity of "check and record" must be a single database operation, not a read-then-write pair, to avoid a race between two concurrent deliveries of the same (redelivered) message.
+Correctness: this must run in the same local transaction as the business handler's own write (both committed together, or both rolled back together) — a detail each service's consumer class (Phase 1+) is responsible for wiring correctly; this class only exposes the atomic primitive.
 8. Testing Strategy
 
-Serialization round-trip test: construct an envelope with a sample payload type, serialize, deserialize, assert equality.
+Unit test with a fake InboxEventStorePort: first call for a given eventId returns true; second call for the same ID returns false.
+Integration test simulating two concurrent redelivery attempts, asserting exactly one succeeds in marking processed.
 9. Future Extension
 
-version supports future schema evolution per Event-Catalog.md §10; new optional payload fields are additive within T, never a structural change to the envelope itself.
+If a future need arises to expire old inbox records (mirroring IdempotencyRecordCleanupJob), a similar shared cleanup job could be added here following the same pattern — not implemented now, since inbox retention policy hasn't yet been specified in any service's own doc.
