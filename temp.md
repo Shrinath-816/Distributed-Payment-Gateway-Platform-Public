@@ -1,16 +1,88 @@
-Section 11 - Task queues and background jobs
-Why do we need background jobs? How do they exactly work? What are the major components of a task queue? Some design parameters and best practices to consider.section 7 -   What are controllers, services, repositories, middlewares and request context?
-In this we understand the request lifecycle inside a backend server with controllers/handlers, services, repositories, middlewares and request context.
-
-
-section 12 -   Full text search using Elasticsearch for blazingly fast search
-In this video we discuss what is the problem with performing search based workflows in traditional relational databases. What is the advantage tools like Elasticsearch offer, how they work and when to use them. explains the limitations of relational database 'LIKE' queries for searching large datasets, focusing on speed and relevance issues. The tutorial demonstrates how inverted indexes and Apache Lucene power modern search engines like Elasticsearch to handle millions of products efficiently.
-
-section 13 - Error Handling and Building Fault Tolerant Systems
-No matter what kind of software you are creating, errors are something which you will encounter, no matter what. In this  I discuss different types of error you might encounter in a typical backend, different ways to prevent them and fix them.
-
-section 14 -  Production-grade Configuration Management
-In this , we dive into the critical world of configuration management for backend applications. Learn best practices for managing settings, secrets, and variables effectively, ensuring scalability, maintainability, and security in your projects. We'll cover various strategies, tools, and considerations to help you build robust and production-ready backend systems.
-
-section 15 - Logging, Monitoring and Observability
-Logging, monitoring, and observability are crucial for understanding the behavior of software systems. They provide insights into system performance, identify potential issues, and aid in debugging and optimization. And we will discuss all that in this video.
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/KafkaTestContainerBase.java:[3,40] package org.springframework.test.context does not exist
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/KafkaTestContainerBase.java:[4,40] package org.springframework.test.context does not exist
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/KafkaTestContainerBase.java:[55,41] cannot find symbol
+  symbol:   class DynamicPropertyRegistry
+  location: class com.paymentgateway.common.testcontainers.KafkaTestContainerBase
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/PostgresTestContainerBase.java:[3,40] package org.springframework.test.context does not exist
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/PostgresTestContainerBase.java:[4,40] package org.springframework.test.context does not exist
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/PostgresTestContainerBase.java:[70,44] cannot find symbol
+  symbol:   class DynamicPropertyRegistry
+  location: class com.paymentgateway.common.testcontainers.PostgresTestContainerBase
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/RedisTestContainerBase.java:[3,40] package org.springframework.test.context does not exist
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/RedisTestContainerBase.java:[4,40] package org.springframework.test.context does not exist
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/RedisTestContainerBase.java:[58,41] cannot find symbol
+  symbol:   class DynamicPropertyRegistry
+  location: class com.paymentgateway.common.testcontainers.RedisTestContainerBase
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/KafkaTestContainerBase.java:[54,6] cannot find symbol
+  symbol:   class DynamicPropertySource
+  location: class com.paymentgateway.common.testcontainers.KafkaTestContainerBase
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/PostgresTestContainerBase.java:[69,6] cannot find symbol
+  symbol:   class DynamicPropertySource
+  location: class com.paymentgateway.common.testcontainers.PostgresTestContainerBase
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/RedisTestContainerBase.java:[57,6] cannot find symbol
+  symbol:   class DynamicPropertySource
+  location: class com.paymentgateway.common.testcontainers.RedisTestContainerBase
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/wiremock/WireMockSupport.java:[126,48] cannot find symbol
+  symbol:   method willSetStateTo(java.lang.String)
+  location: variable mappingBuilder of type com.github.tomakehurst.wiremock.client.MappingBuilder
+[INFO] 13 errors
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for Payment Gateway - Common Observability 1.0.0-SNAPSHOT:
+[INFO]
+[INFO] Payment Gateway - Common Observability ............. SUCCESS [  3.565 s]
+[INFO] Payment Gateway - Common Test Support .............. FAILURE [  0.940 s]
+[INFO] Payment Gateway - Merchant Service ................. SKIPPED
+[INFO] Payment Gateway - Token Vault Service .............. SKIPPED
+[INFO] Payment Gateway - Payment Orchestrator Service ..... SKIPPED
+[INFO] Payment Gateway - Acquiring Adapter Service ........ SKIPPED
+[INFO] Payment Gateway - Provider Simulator ............... SKIPPED
+[INFO] Payment Gateway - Webhook Service .................. SKIPPED
+[INFO] Payment Gateway - Settlement Service ............... SKIPPED
+[INFO] Payment Gateway - API Gateway ...................... SKIPPED
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  4.886 s
+[INFO] Finished at: 2026-08-09T21:24:03+05:30
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.14.0:compile (default-compile) on project common-test-support: Compilation failure: Compilation failure:
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/KafkaTestContainerBase.java:[3,40] package org.springframework.test.context does not exist
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/KafkaTestContainerBase.java:[4,40] package org.springframework.test.context does not exist
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/KafkaTestContainerBase.java:[55,41] cannot find symbol
+[ERROR]   symbol:   class DynamicPropertyRegistry
+[ERROR]   location: class com.paymentgateway.common.testcontainers.KafkaTestContainerBase
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/PostgresTestContainerBase.java:[3,40] package org.springframework.test.context does not exist
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/PostgresTestContainerBase.java:[4,40] package org.springframework.test.context does not exist
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/PostgresTestContainerBase.java:[70,44] cannot find symbol
+[ERROR]   symbol:   class DynamicPropertyRegistry
+[ERROR]   location: class com.paymentgateway.common.testcontainers.PostgresTestContainerBase
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/RedisTestContainerBase.java:[3,40] package org.springframework.test.context does not exist
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/RedisTestContainerBase.java:[4,40] package org.springframework.test.context does not exist
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/RedisTestContainerBase.java:[58,41] cannot find symbol
+[ERROR]   symbol:   class DynamicPropertyRegistry
+[ERROR]   location: class com.paymentgateway.common.testcontainers.RedisTestContainerBase
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/KafkaTestContainerBase.java:[54,6] cannot find symbol
+[ERROR]   symbol:   class DynamicPropertySource
+[ERROR]   location: class com.paymentgateway.common.testcontainers.KafkaTestContainerBase
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/PostgresTestContainerBase.java:[69,6] cannot find symbol
+[ERROR]   symbol:   class DynamicPropertySource
+[ERROR]   location: class com.paymentgateway.common.testcontainers.PostgresTestContainerBase
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/testcontainers/RedisTestContainerBase.java:[57,6] cannot find symbol
+[ERROR]   symbol:   class DynamicPropertySource
+[ERROR]   location: class com.paymentgateway.common.testcontainers.RedisTestContainerBase
+[ERROR] /D:/Distributed-Payment-Gateway-Platform/Distributed-Payment-Gateway-System/platform/common-test-support/src/main/java/com/paymentgateway/common/wiremock/WireMockSupport.java:[126,48] cannot find symbol
+[ERROR]   symbol:   method willSetStateTo(java.lang.String)
+[ERROR]   location: variable mappingBuilder of type com.github.tomakehurst.wiremock.client.MappingBuilder
+[ERROR] -> [Help 1]
+[ERROR]
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR]
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR]
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :common-test-support
