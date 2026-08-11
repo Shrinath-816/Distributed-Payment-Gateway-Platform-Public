@@ -45,3 +45,12 @@
  *
  * This ensures every unexpected error follows the same response format.
  */
+
+/*
+ * Where is this class used?
+ *
+ * This class is automatically discovered by Spring because of the
+ * @Component annotation. Whenever an unhandled exception reaches
+ * Spring Boot, the framework automatically calls getErrorAttributes()
+ * to build the final error response sent to the client.
+ */

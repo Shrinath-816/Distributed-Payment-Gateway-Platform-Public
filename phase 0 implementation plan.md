@@ -1529,7 +1529,7 @@ Per file:
 
 You name the file.
 I give the file-spec (package, imports, signatures, one-line method behavior, doc cross-ref).
-Gemini generates code.
+claude generates code after giving all the specifications so it will be easy for him to write the code.
 You compile.
 
 Per slice (not per file):
